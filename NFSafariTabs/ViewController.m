@@ -8,14 +8,20 @@
 
 #import "ViewController.h"
 #import "NFTabCollectionViewCell.h"
-#import "NFCollectionViewTabsLayout.h"
+#import "NFTabsBrowsingLayout.h"
+#import "NFTabSelectLayout.h"
+#import "TTAutoLayoutTool.h"
 
 NSString *const CellReuseIdentifier = @"CellReuseIdentifier";
 
 @interface ViewController () <UIGestureRecognizerDelegate, UICollectionViewDataSource, UICollectionViewDelegate>
+{
+    BOOL _isSelected;
+}
 
-@property (nonatomic, strong) NFCollectionViewTabsLayout *tabsLayout;
 @property (nonatomic, strong) UICollectionView *collectionView;
+@property (nonatomic, strong) NFTabsBrowsingLayout *browseringLayout;
+@property (nonatomic, strong) NFTabSelectLayout *selectLayout;
 
 @property (nonatomic, strong) NSMutableArray *tabs;
 
@@ -42,7 +48,7 @@ NSString *const CellReuseIdentifier = @"CellReuseIdentifier";
 - (void)commonInit
 {
     self.tabs = [NSMutableArray array];
-    for (NSUInteger i = 0; i < 33; i++) {
+    for (NSUInteger i = 0; i < 10; i++) {
         [self.tabs addObject:@(i)];
     }
 }
@@ -51,15 +57,20 @@ NSString *const CellReuseIdentifier = @"CellReuseIdentifier";
 {
     [super viewDidLoad];
     
-    NFCollectionViewTabsLayout *tabsLayout = [[NFCollectionViewTabsLayout alloc] init];
-    self.tabsLayout = tabsLayout;
+    NFTabsBrowsingLayout *browsingLayout = [NFTabsBrowsingLayout new];
+    self.browseringLayout = browsingLayout;
     
-    UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:self.view.bounds collectionViewLayout:tabsLayout];
+    NFTabSelectLayout *selectLayout = [NFTabSelectLayout new];
+    self.selectLayout = selectLayout;
+    
+    UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:self.view.bounds collectionViewLayout:browsingLayout];
     collectionView.dataSource = self;
     collectionView.delegate = self;
     [collectionView registerClass:[NFTabCollectionViewCell class] forCellWithReuseIdentifier:CellReuseIdentifier];
     collectionView.backgroundColor = [UIColor darkGrayColor];
     [self.view addSubview:collectionView];
+    collectionView.translatesAutoresizingMaskIntoConstraints = NO;
+    [TTAutoLayoutTool letView:collectionView FillInView:self.view];
     self.collectionView = collectionView;
     
     UIPanGestureRecognizer *panGestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panGestureRecognized:)];
@@ -81,9 +92,9 @@ NSString *const CellReuseIdentifier = @"CellReuseIdentifier";
     return YES;
 }
 
-- (NSUInteger)supportedInterfaceOrientations
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations
 {
-    return UIInterfaceOrientationMaskPortrait;
+    return UIInterfaceOrientationMaskAll;
 }
 
 #pragma mark - 
@@ -95,17 +106,17 @@ NSString *const CellReuseIdentifier = @"CellReuseIdentifier";
     if (recognizer.state == UIGestureRecognizerStateBegan) {
         
         NSIndexPath *indexPath = [self.collectionView indexPathForItemAtPoint:point];
-        self.tabsLayout.pannedItemIndexPath = indexPath;
-        self.tabsLayout.panStartPoint = point;
+        self.browseringLayout.pannedItemIndexPath = indexPath;
+        self.browseringLayout.panStartPoint = point;
         
     } else if (recognizer.state == UIGestureRecognizerStateChanged) {
-        self.tabsLayout.panUpdatePoint = point;
+        self.browseringLayout.panUpdatePoint = point;
         
     } else {
-        self.tabsLayout.pannedItemIndexPath = nil;
+        self.browseringLayout.pannedItemIndexPath = nil;
     }
     
-    [self.tabsLayout invalidateLayout];
+    [self.browseringLayout invalidateLayout];
 }
 
 #pragma mark - UIGestureRecognizerDelegate
@@ -140,10 +151,11 @@ NSString *const CellReuseIdentifier = @"CellReuseIdentifier";
     cell.titleLabel.textColor = [UIColor blueColor];
     
     cell.contentView.layer.shadowColor = [UIColor blackColor].CGColor;
-    cell.contentView.layer.shadowOffset = CGSizeMake(0.0, -40.0);
-    cell.contentView.layer.shadowOpacity = 0.2;
-    cell.contentView.layer.shadowRadius = 40.0;
+    cell.contentView.layer.shadowOffset = CGSizeMake(0.0, -20.0);
+    cell.contentView.layer.shadowOpacity = 0.6;
+    cell.contentView.layer.shadowRadius = 20.0;
     cell.contentView.layer.shadowPath = [UIBezierPath bezierPathWithRect:cell.contentView.bounds].CGPath;
+    cell.contentView.layer.shouldRasterize = YES;
     
     return cell;
 }
@@ -153,6 +165,13 @@ NSString *const CellReuseIdentifier = @"CellReuseIdentifier";
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath
 {
     NSLog(@"TAPPED CELL %@ (INDEX %ld)", self.tabs[indexPath.item], (long)indexPath.item);
+    
+    if (!_isSelected)
+        [self.collectionView setCollectionViewLayout:self.selectLayout animated:YES];
+    else
+        [self.collectionView setCollectionViewLayout:self.browseringLayout animated:YES];
+    
+    _isSelected = !_isSelected;
 }
 
 @end
